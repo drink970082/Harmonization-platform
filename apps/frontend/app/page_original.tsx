@@ -56,7 +56,6 @@ export default function Home() {
   const [showQuoteUI, setShowQuoteUI] = useState(false);
   const [loading, setLoading] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
-  const [selectedBridge, setSelectedBridge] = useState<'wormhole' | 'layerzero'>('wormhole');
 
   const handleWalletConnected = (address: string) => {
     setWalletAddress(address);
@@ -84,8 +83,8 @@ export default function Home() {
 
   const handleVaaSubmitted = (wrappedTokenAddress: string) => {
     setWrappedSolAddress(wrappedTokenAddress);
-    setIsVaaReady(false); // VAA submitted, no longer needed
-    setIsVaaSubmitted(true); // Mark VAA as submitted
+    setIsVaaReady(false); // VAA 已提交，不再需要
+    setIsVaaSubmitted(true); // 標記 VAA 已提交
   };
 
   const handleShowRiskReport = () => {
@@ -99,7 +98,7 @@ export default function Home() {
   const handleTransfer = async (formData: any) => {
     setLoading('transfer');
     try {
-      // Validate required fields
+      // 驗證必要字段
       if (!formData.erc20Address || !formData.amount || !formData.toAccount) {
         alert('❌ Please fill in all required fields!');
         return;
@@ -110,7 +109,7 @@ export default function Home() {
         return;
       }
 
-      // Ensure user is on the correct network
+      // 確保用戶在正確的網絡上
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const network = await provider.getNetwork();
       
@@ -123,9 +122,10 @@ export default function Home() {
 
       console.log('🚀 Starting cross-chain transfer...');
       
-      // Simplified version - direct ERC20 token transfer
-      // To solve complex SDK version issues, we now use a simplified method
-      // Direct interaction with MetaMask for token transfer
+      // 簡化版本 - 直接處理ERC20代幣轉賬
+      
+      // 為了解決複雜的SDK版本問題，我們現在使用簡化的方法
+      // 直接與MetaMask交互進行代幣轉賬
       
       const evmSigner = await provider.getSigner();
       const userAddress = await evmSigner.getAddress();
@@ -134,11 +134,10 @@ export default function Home() {
         tokenAddress: formData.erc20Address,
         amount: formData.amount,
         from: userAddress,
-        to: formData.toAccount,
-        bridge: selectedBridge
+        to: formData.toAccount
       });
 
-      // Create ERC20 contract instance for transfer handling
+      // 創建 ERC20 合約實例來處理轉賬
       const tokenContract = new ethers.Contract(
         formData.erc20Address,
         [
@@ -150,12 +149,12 @@ export default function Home() {
         evmSigner
       );
       
-      // Get token decimals and balance
-      let decimals = 6; // Default decimals
+      // 獲取token的decimals和余額
+      let decimals = 6; // 預設decimals
       let transferAmount: bigint;
       
       try {
-        // Try to get actual decimals, use default if failed
+        // 嘗試獲取實際decimals，如果失敗則使用預設值
         try {
           decimals = await (tokenContract as any).decimals();
         } catch {
@@ -164,7 +163,7 @@ export default function Home() {
         
         transferAmount = ethers.parseUnits(formData.amount, decimals);
         
-        // Check balance
+        // 檢查余額
         try {
           const balance = await (tokenContract as any).balanceOf(userAddress);
           if (balance < transferAmount) {
@@ -178,42 +177,39 @@ export default function Home() {
         throw new Error(`Token validation failed: ${(validationError as Error).message}`);
       }
       
-      console.log(`💸 Initiating ${selectedBridge} transfer...`);
-      alert(`💸 Please approve the token transfer via ${selectedBridge.toUpperCase()} in your wallet...`);
+      console.log('💸 Initiating token transfer...');
+      alert('💸 Please approve the token transfer in your wallet...');
       
-      // Here we simulate a cross-chain transfer process
-      // In real applications, this would first approve tokens to the bridge contract then transfer
+      // 這裡我們模擬一個跨鏈轉賬流程
+      // 在實際應用中，這裡會先approve代幣給Wormhole合約再轉賬
       
-      // Simulate a simple transfer operation (for demonstration)
-      const mockBridgeAddress = selectedBridge === 'wormhole' ? 
-        '0x' + '1'.repeat(40) : // Mock Wormhole address
-        '0x' + '2'.repeat(40);  // Mock LayerZero address
+      // 模擬一個簡單的轉賬操作（為了演示）
+      const mockWormholeAddress = '0x' + '1'.repeat(40); // 模擬Wormhole地址
       
       try {
-        // Simulate approve transaction
-        const approveTx = await (tokenContract as any).approve(mockBridgeAddress, transferAmount);
+        // 模擬approve交易（使用上面計算的transferAmount）
+        const approveTx = await (tokenContract as any).approve(mockWormholeAddress, transferAmount);
         console.log('📋 Approve transaction sent:', approveTx.hash);
         
         alert(
-          `🔄 Token approval submitted via ${selectedBridge.toUpperCase()}!\n\n` +
+          `🔄 Token approval submitted!\n\n` +
           `Transaction Hash: ${approveTx.hash}\n` +
           `Waiting for confirmation...`
         );
         
-        // Wait for transaction confirmation
+        // 等待交易確認
         await approveTx.wait();
         
-        // Simulate successful cross-chain transfer
+        // 模擬跨鏈轉賬成功
         const mockDestTxId = '0x' + Math.random().toString(16).substring(2).padStart(64, '0');
         
         alert(
-          `✅ Cross-chain transfer simulated successfully via ${selectedBridge.toUpperCase()}!\n\n` +
+          `✅ Cross-chain transfer simulated successfully!\n\n` +
           `Ethereum Approval TX: ${approveTx.hash}\n` +
           `Amount: ${formData.amount} tokens\n` +
           `Destination: ${formData.toAccount}\n` +
-          `Bridge Used: ${selectedBridge.toUpperCase()}\n` +
           `Simulated Solana TX: ${mockDestTxId}\n\n` +
-          `Note: This is a demo. In production, use actual bridge protocols.`
+          `Note: This is a demo. In production, use actual Wormhole protocol.`
         );
         
       } catch (contractError: any) {
@@ -221,17 +217,15 @@ export default function Home() {
         throw new Error(`Token contract interaction failed: ${contractError.message}`);
       }
       
-      // Provide user with option to complete manual cross-chain transfer
+      // 提供用戶手動完成跨鏈轉賬的選項
       const usePortal = confirm(
-        `🌉 Want to try actual cross-chain transfer?\n\n` +
-        `Click OK to open ${selectedBridge === 'wormhole' ? 'Wormhole Portal' : 'Stargate Finance'} for real cross-chain transfer,\n` +
-        `or Cancel to complete the demo.`
+        '🌉 Want to try actual cross-chain transfer?\n\n' +
+        'Click OK to open Wormhole Portal for real cross-chain transfer,\n' +
+        'or Cancel to complete the demo.'
       );
       
       if (usePortal) {
-        const portalUrl = selectedBridge === 'wormhole' ?
-          `https://www.portalbridge.com/#/transfer?sourceChain=ethereum&targetChain=solana&token=${formData.erc20Address}` :
-          `https://stargate.finance/bridge`;
+        const portalUrl = `https://www.portalbridge.com/#/transfer?sourceChain=ethereum&targetChain=solana&token=${formData.erc20Address}`;
         window.open(portalUrl, '_blank');
       }
       
@@ -345,69 +339,7 @@ export default function Home() {
             </div>
           </header>
 
-          {/* Bridge Selection */}
-          {walletAddress && (
-            <div className="w-full max-w-4xl mb-16">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8">
-                <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                  🌉 Select Bridge Protocol
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <button
-                    onClick={() => setSelectedBridge('wormhole')}
-                    className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-                      selectedBridge === 'wormhole'
-                        ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-gray-600 bg-gray-800/50 hover:border-blue-400'
-                    }`}
-                  >
-                    <div className="text-4xl mb-4">🌀</div>
-                    <h4 className="text-xl font-bold text-white mb-2">Wormhole</h4>
-                    <p className="text-gray-300 text-sm mb-4">
-                      Leading cross-chain protocol with proven security and wide network support
-                    </p>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Fee:</span>
-                        <span className="text-green-400">~$3-8</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Time:</span>
-                        <span className="text-blue-400">~15-30 min</span>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedBridge('layerzero')}
-                    className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-                      selectedBridge === 'layerzero'
-                        ? 'border-purple-500 bg-purple-500/20'
-                        : 'border-gray-600 bg-gray-800/50 hover:border-purple-400'
-                    }`}
-                  >
-                    <div className="text-4xl mb-4">⚡</div>
-                    <h4 className="text-xl font-bold text-white mb-2">LayerZero</h4>
-                    <p className="text-gray-300 text-sm mb-4">
-                      Next-generation omnichain protocol with ultra-light node architecture
-                    </p>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Fee:</span>
-                        <span className="text-green-400">~$1-5</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Time:</span>
-                        <span className="text-blue-400">~5-15 min</span>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Main Flow */}
+          {/* Main Flow - 確保每個組件間有足夠間距 */}
           <div 
             className="w-full"
             style={{
@@ -487,7 +419,7 @@ export default function Home() {
                   <div className="relative flex justify-center">
                     <div className="px-8 py-4 bg-gradient-to-r from-blue-950/80 to-purple-950/80 backdrop-blur-xl border border-blue-500/30 rounded-2xl">
                       <span className="text-lg font-semibold text-blue-400 tracking-wide">
-                        {selectedBridge.toUpperCase()} Transfer Protocol
+                        Transfer Protocol
                       </span>
                     </div>
                   </div>
@@ -544,18 +476,18 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 <div className="p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-xl">
                   <div className="text-blue-400 text-2xl mb-3">🌉</div>
-                  <h5 className="text-white font-semibold mb-2">Multi-Bridge Support</h5>
-                  <p className="text-gray-400 text-sm">Wormhole & LayerZero integration</p>
+                  <h5 className="text-white font-semibold mb-2">Wormhole Bridge</h5>
+                  <p className="text-gray-400 text-sm">Cross-chain interoperability</p>
                 </div>
                 <div className="p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-xl">
                   <div className="text-purple-400 text-2xl mb-3">⚡</div>
                   <h5 className="text-white font-semibold mb-2">Real-time Analytics</h5>
-                  <p className="text-gray-400 text-sm">Live risk assessment & cost comparison</p>
+                  <p className="text-gray-400 text-sm">Live risk assessment</p>
                 </div>
                 <div className="p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-xl">
                   <div className="text-emerald-400 text-2xl mb-3">🔒</div>
                   <h5 className="text-white font-semibold mb-2">Enterprise Security</h5>
-                  <p className="text-gray-400 text-sm">Military-grade encryption & auditing</p>
+                  <p className="text-gray-400 text-sm">Military-grade encryption</p>
                 </div>
               </div>
               
